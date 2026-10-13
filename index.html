@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Recovery Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F1F4F2;
+    --panel: #FFFFFF;
+    --ink: #1C2B29;
+    --ink-soft: #4B5B58;
+    --pine: #2F6F62;
+    --pine-dark: #204A41;
+    --clay: #B8703F;
+    --ice: #3F7FA0;
+    --heat: #C1522C;
+    --rest: #6B5B95;
+    --compress: #5A8F6B;
+    --line: #DDE4E0;
+    --warn-bg: #FBF3EA;
+    --warn-line: #E4C79A;
+    --radius: 4px;
+    font-size: 16px;
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Public Sans', sans-serif;
+    line-height: 1.5;
+  }
+  h1,h2,h3{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    margin: 0;
+    color: var(--pine-dark);
+  }
+  header.top{
+    padding: 2.5rem 1.5rem 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  header.top h1{ font-size: 2.1rem; letter-spacing: -0.01em; }
+  header.top p{
+    max-width: 62ch;
+    color: var(--ink-soft);
+    margin-top: 0.5rem;
+    font-size: 1.02rem;
+  }
+  .transparency{
+    max-width: 1100px;
+    margin: 0 auto 1.75rem;
+    padding: 0 1.5rem;
+  }
+  .transparency details{
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+  }
+  .transparency summary{
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--pine-dark);
+    font-size: 0.95rem;
+  }
+  .transparency ul{
+    margin: 0.75rem 0 0.25rem;
+    padding-left: 1.2rem;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+  .transparency li{ margin-bottom: 0.4rem; }
+  main{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 1.75rem;
+    align-items: start;
+  }
+  @media (max-width: 820px){
+    main{ grid-template-columns: 1fr; }
+  }
+  form.panel{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    position: sticky;
+    top: 1.5rem;
+  }
+  .field{ margin-bottom: 1.25rem; }
+  .field label{
+    display:block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    color: var(--ink);
+  }
+  .field .hint{
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-top: 0.3rem;
+  }
+  select, input[type=range]{ width: 100%; }
+  select{
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: var(--bg);
+  }
+  .radio-row, .check-row{
+    display:flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .radio-row label, .check-row label{
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .severity-value{
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    color: var(--clay);
+  }
+  .toggle{
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .toggle button{
+    flex: 1;
+    padding: 0.55rem 0.5rem;
+    border: none;
+    background: var(--panel);
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+  .toggle button.active{
+    background: var(--pine);
+    color: white;
+  }
+  button.submit{
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--pine-dark);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+  }
+  button.submit:hover{ background: var(--pine); }
+
+  .results .placeholder{
+    color: var(--ink-soft);
+    padding: 3rem 1rem;
+    text-align: center;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+  }
+  .modality-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 6px solid var(--pine);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .modality-card.ice{ border-left-color: var(--ice); }
+  .modality-card.heat{ border-left-color: var(--heat); }
+  .modality-card.rest{ border-left-color: var(--rest); }
+  .modality-card.compression{ border-left-color: var(--compress); }
+  .modality-card h2{ font-size: 1.5rem; }
+  .modality-card .detail{
+    margin-top: 0.4rem;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .score-bars{
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.45rem;
+  }
+  .score-row{
+    display: grid;
+    grid-template-columns: 90px 1fr 34px;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+  .bar-track{
+    height: 8px;
+    background: var(--line);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .bar-fill{ height: 100%; border-radius: 99px; }
+
+  .why{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+  .why strong{ color: var(--ink); }
+
+  .exercise-list h3{ font-size: 1.05rem; margin-bottom: 0.75rem; }
+  .exercise-row{
+    display: grid;
+    grid-template-columns: 28px 1fr 70px;
+    gap: 0.85rem;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .exercise-row:last-child{ border-bottom: none; }
+  .rank{
+    font-family: 'Fraunces', serif;
+    color: var(--clay);
+    font-size: 1.1rem;
+  }
+  .ex-name{ font-weight: 600; font-size: 0.95rem; }
+  .ex-meta{ font-size: 0.78rem; color: var(--ink-soft); margin-top: 0.15rem; }
+  .ex-score{ text-align: right; font-size: 0.85rem; color: var(--pine-dark); font-weight: 600; }
+
+  .error-box{
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-line);
+    border-radius: var(--radius);
+    padding: 1rem 1.2rem;
+    font-size: 0.9rem;
+    color: var(--ink);
+  }
+  footer{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem 2.5rem;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Recovery Coach</h1>
+  <p>Tell it where it hurts, how bad, and since when. It computes a recovery modality and pulls a ranked set of rehab exercises live from the wger exercise database.</p>
+</header>
+
+<div class="transparency">
+  <details open>
+    <summary>Model Transparency — read before using</summary>
+    <ul>
+      <li>This tool applies a general RICE-protocol heuristic (Ice/Heat/Rest/Compression) and is not a diagnosis or a substitute for medical advice.</li>
+      <li>Exercise suggestions come from the wger open exercise database, a community-maintained dataset — muscle and equipment tagging can be incomplete or inconsistent for some exercises.</li>
+      <li>There is no per-exercise difficulty rating in the data, so "intensity" is estimated from your reported severity, not from a clinical assessment of the exercise itself.</li>
+      <li>Sharp or severe acute pain is flagged for rest and professional evaluation rather than given an exercise ranking — persistent or worsening pain should always be checked by a clinician.</li>
+    </ul>
+  </details>
+</div>
+
+<main>
+  <form class="panel" id="recovery-form">
+
+    <div class="field">
+      <label for="muscle">Where does it hurt?</label>
+      <select id="muscle" required>
+        <option value="">Loading muscle list…</option>
+      </select>
+      <div class="hint">Pulled live from wger's muscle reference list.</div>
+    </div>
+
+    <div class="field">
+      <label>What kind of discomfort is it?</label>
+      <div class="radio-row">
+        <label><input type="radio" name="type" value="doms" checked> Muscle fatigue / soreness (post-workout)</label>
+        <label><input type="radio" name="type" value="joint"> Joint or tendon discomfort</label>
+        <label><input type="radio" name="type" value="acute"> Sharp or acute pain</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="severity">Pain severity: <span class="severity-value" id="severity-out">5</span>/10</label>
+      <input type="range" id="severity" min="1" max="10" value="5">
+      <div class="hint">This is your main constraint — it scales duration, intensity limits, and whether exercise is recommended at all.</div>
+    </div>
+
+    <div class="field">
+      <label for="onset">When did it start?</label>
+      <select id="onset">
+        <option value="lt24">Less than 24 hours ago</option>
+        <option value="24to72" selected>24–72 hours ago</option>
+        <option value="gt72">More than 72 hours ago</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Available equipment (optional filter)</label>
+      <div class="check-row" id="equipment-list">
+        <label><input type="checkbox" disabled> Loading equipment list…</label>
+      </div>
+      <div class="hint">Leave all unchecked to include bodyweight-only exercises.</div>
+    </div>
+
+    <div class="field">
+      <label>Recovery goal</label>
+      <div class="toggle" id="goal-toggle">
+        <button type="button" data-goal="ease" class="active">Ease back in ASAP</button>
+        <button type="button" data-goal="rest">Prioritize full rest</button>
+      </div>
+    </div>
+
+    <button type="submit" class="submit">Get my recommendation</button>
+  </form>
+
+  <section class="results" id="results">
+    <div class="placeholder">Fill out the form and submit to see your recovery plan.</div>
+  </section>
+</main>
+
+<footer>
+  Data source: wger Workout Manager API (wger.de/api/v2) — a free, open-source, community-maintained exercise database. No API key required for the endpoints this app uses.
+</footer>
+
+<script>
+const WGER_BASE = "https://wger.de/api/v2";
+let MUSCLES = [];
+let EQUIPMENT = [];
+let selectedGoal = "ease";
+
+const severityInput = document.getElementById("severity");
+const severityOut = document.getElementById("severity-out");
+severityInput.addEventListener("input", () => severityOut.textContent = severityInput.value);
+
+document.getElementById("goal-toggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  selectedGoal = btn.dataset.goal;
+  document.querySelectorAll("#goal-toggle button").forEach(b => b.classList.toggle("active", b === btn));
+});
+
+// --- Load reference data from the API on page load ---
+async function loadReferenceData(){
+  try{
+    const [muscleRes, equipRes] = await Promise.all([
+      fetch(`${WGER_BASE}/muscle/?format=json&limit=30`),
+      fetch(`${WGER_BASE}/equipment/?format=json&limit=30`)
+    ]);
+    if (!muscleRes.ok || !equipRes.ok) throw new Error("Reference data request failed");
+    const muscleData = await muscleRes.json();
+    const equipData = await equipRes.json();
+
+    MUSCLES = muscleData.results
+      .filter(m => m.name_en && m.name_en.trim().length > 0)
+      .sort((a,b) => a.name_en.localeCompare(b.name_en));
+    // fall back to internal name if name_en is blank for some entries
+    const blanks = muscleData.results.filter(m => !m.name_en || m.name_en.trim().length === 0);
+    blanks.forEach(m => MUSCLES.push({...m, name_en: m.name}));
+
+    EQUIPMENT = equipData.results;
+
+    const muscleSelect = document.getElementById("muscle");
+    muscleSelect.innerHTML = MUSCLES.map(m => `<option value="${m.id}">${m.name_en}</option>`).join("");
+
+    const equipList = document.getElementById("equipment-list");
+    equipList.innerHTML = EQUIPMENT
+      .filter(e => !/none/i.test(e.name))
+      .map(e => `<label><input type="checkbox" value="${e.id}"> ${e.name}</label>`).join("");
+
+  } catch(err){
+    console.error(err);
+    document.getElementById("muscle").innerHTML = `<option value="">Couldn't load — try refreshing</option>`;
+    document.getElementById("equipment-list").innerHTML = `<div class="hint">Equipment list unavailable right now.</div>`;
+  }
+}
+loadReferenceData();
+
+// --- Modality scoring (computed, not looked up) ---
+function computeModalityScores(type, severity, onset, goal){
+  const base = {
+    doms:  { ice: 5, heat: 6, rest: 3, compression: 2 },
+    joint: { ice: 6, heat: 4, rest: 5, compression: 7 },
+    acute: { ice: 8, heat: 1, rest: 8, compression: 6 },
+  }[type];
+
+  const onsetMod = {
+    lt24:   { ice: 3, heat: -3 },
+    "24to72": { ice: 1, heat: -1 },
+    gt72:   { ice: -3, heat: 3 },
+  }[onset];
+
+  let scores = {
+    ice: base.ice + onsetMod.ice + severity * 0.2,
+    heat: base.heat + onsetMod.heat + severity * 0.05,
+    rest: base.rest + severity * 0.4,
+    compression: base.compression + severity * 0.15,
+  };
+
+  if (goal === "ease"){ scores.rest -= 1.5; scores.ice += 0.5; scores.compression += 0.5; }
+  if (goal === "rest"){ scores.rest += 1.5; }
+
+  Object.keys(scores).forEach(k => scores[k] = Math.max(0, Math.min(10, scores[k])));
+  return scores;
+}
+
+function modalityPlan(topModality, severity){
+  if (topModality === "ice"){
+    const dur = Math.round(Math.min(25, 10 + severity * 1.5));
+    const freq = severity >= 6 ? "every 2–3 hours" : "every 4 hours";
+    return `Ice, ${dur} min, ${freq}, for the next 48 hours.`;
+  }
+  if (topModality === "heat"){
+    const dur = Math.round(Math.min(25, 15 + severity));
+    return `Heat, ${dur} min sessions, 1–2 times per day.`;
+  }
+  if (topModality === "compression"){
+    return `Compression wrap during activity, 20 min sessions, reassess daily.`;
+  }
+  const restDays = Math.max(1, Math.ceil(severity / 3));
+  return `Rest and avoid loading the area for about ${restDays} day(s), then reassess.`;
+}
+
+// --- Exercise fetch + suitability scoring ---
+async function fetchExercises(muscleId, equipmentIds){
+  const params = new URLSearchParams({ muscles: muscleId, format: "json", limit: "40", language: "2", status: "2" });
+  const url = `${WGER_BASE}/exerciseinfo/?${params.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`wger request failed: ${res.status}`);
+  const data = await res.json();
+  return data.results || [];
+}
+
+function extractName(item){
+  if (item.name) return item.name;
+  if (Array.isArray(item.translations)){
+    const en = item.translations.find(t => t.language === 2 && t.name);
+    if (en) return en.name;
+    const any = item.translations.find(t => t.name);
+    if (any) return any.name;
+  }
+  return `Exercise #${item.id}`;
+}
+
+function scoreExercise(item, muscleId, equipmentIds, severity, goal){
+  const muscles = item.muscles || [];
+  const musclesSecondary = item.muscles_secondary || [];
+  const equipment = item.equipment || [];
+
+  const primaryMatch = muscles.includes(Number(muscleId)) ? 1 : 0;
+  const secondaryMatch = (!primaryMatch && musclesSecondary.includes(Number(muscleId))) ? 1 : 0;
+
+  let equipmentMatchFraction = 1;
+  if (equipment.length > 0){
+    if (equipmentIds.length === 0){
+      equipmentMatchFraction = 0; // user picked no equipment but exercise needs some
+    } else {
+      const matched = equipment.filter(e => equipmentIds.includes(e)).length;
+      equipmentMatchFraction = matched / equipment.length;
+    }
+  }
+
+  const intensityPenalty = severity * (goal === "rest" ? 2.5 : 1.2);
+
+  let score = (primaryMatch * 60) + (secondaryMatch * 25) + (equipmentMatchFraction * 15) - intensityPenalty;
+  score = Math.max(0, Math.min(100, score));
+  return { score, primaryMatch, secondaryMatch, equipmentMatchFraction };
+}
+
+// --- Form submit handler ---
+document.getElementById("recovery-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const results = document.getElementById("results");
+  results.innerHTML = `<div class="placeholder">Fetching live exercise data from wger…</div>`;
+
+  const muscleId = document.getElementById("muscle").value;
+  const muscleName = MUSCLES.find(m => String(m.id) === String(muscleId))?.name_en || "selected area";
+  const type = document.querySelector('input[name="type"]:checked').value;
+  const severity = Number(document.getElementById("severity").value);
+  const onset = document.getElementById("onset").value;
+  const equipmentIds = Array.from(document.querySelectorAll('#equipment-list input[type=checkbox]:checked')).map(c => Number(c.value));
+
+  if (!muscleId){
+    results.innerHTML = `<div class="error-box">Please select a body area first.</div>`;
+    return;
+  }
+
+  const scores = computeModalityScores(type, severity, onset, selectedGoal);
+  const topModality = Object.keys(scores).reduce((a,b) => scores[a] >= scores[b] ? a : b);
+  const plan = modalityPlan(topModality, severity);
+
+  const typeLabel = { doms: "muscle soreness (DOMS)", joint: "joint/tendon discomfort", acute: "sharp/acute pain" }[type];
+  const onsetLabel = { lt24: "under 24 hours ago", "24to72": "24–72 hours ago", gt72: "over 72 hours ago" }[onset];
+
+  const skipExercise = (type === "acute" && severity >= 7);
+
+  let exerciseHtml = "";
+  if (skipExercise){
+    exerciseHtml = `<div class="error-box">Given the severity and acute nature of this discomfort, exercise recommendations are withheld. Rest the area and consult a medical professional before resuming activity.</div>`;
+  } else {
+    try{
+      const raw = await fetchExercises(muscleId, equipmentIds);
+      const scored = raw.map(item => {
+        const s = scoreExercise(item, muscleId, equipmentIds, severity, selectedGoal);
+        return { item, ...s, name: extractName(item) };
+      })
+      .filter(x => x.primaryMatch || x.secondaryMatch)
+      .sort((a,b) => b.score - a.score)
+      .slice(0, 5);
+
+      if (scored.length === 0){
+        exerciseHtml = `<div class="error-box">wger returned exercises for this muscle, but none had clean muscle/equipment tagging to score confidently — this is a known data-sparsity limitation of the open database. Try a broader equipment selection.</div>`;
+      } else {
+        exerciseHtml = `
+          <div class="exercise-list">
+            <h3>Top ${scored.length} rehab/support exercises for your ${muscleName.toLowerCase()}</h3>
+            ${scored.map((x, i) => `
+              <div class="exercise-row">
+                <div class="rank">${i+1}</div>
+                <div>
+                  <div class="ex-name">${x.name}</div>
+                  <div class="ex-meta">${x.primaryMatch ? "Primary muscle match" : "Secondary muscle match"} · equipment fit ${Math.round(x.equipmentMatchFraction*100)}%</div>
+                </div>
+                <div class="ex-score">${Math.round(x.score)}/100</div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+    } catch(err){
+      console.error(err);
+      exerciseHtml = `<div class="error-box">Couldn't reach the wger API just now (network issue or rate limit). Modality guidance above is still valid — try again shortly for exercise suggestions.</div>`;
+    }
+  }
+
+  const barColor = { ice: "var(--ice)", heat: "var(--heat)", rest: "var(--rest)", compression: "var(--compress)" };
+
+  results.innerHTML = `
+    <div class="modality-card ${topModality}">
+      <h2>${topModality.charAt(0).toUpperCase() + topModality.slice(1)}</h2>
+      <div class="detail">${plan}</div>
+      <div class="score-bars">
+        ${Object.entries(scores).map(([k,v]) => `
+          <div class="score-row">
+            <div>${k}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${v*10}%; background:${barColor[k]}"></div></div>
+            <div>${v.toFixed(1)}</div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+
+    <div class="why">
+      <strong>Why this recommendation?</strong><br>
+      You reported ${typeLabel} in your ${muscleName.toLowerCase()}, severity ${severity}/10, starting ${onsetLabel}.
+      That combination scored <strong>${topModality}</strong> highest (${scores[topModality].toFixed(1)}/10) against the other modalities —
+      ${type === "acute" ? "acute pain weights rest and ice heavily regardless of timing." :
+        onset === "lt24" ? "recent onset favors ice over heat." :
+        onset === "gt72" ? "since onset was over 72 hours ago, heat is weighted higher than it would be for a fresh injury." :
+        "the mid-range timing balances ice and rest."}
+      ${!skipExercise ? "Exercises below are ranked by how directly the muscle was matched (primary vs. secondary) and whether you have the equipment they need — not by popularity or difficulty, since wger doesn't provide a difficulty rating." : ""}
+    </div>
+
+    ${exerciseHtml}
+  `;
+});
+</script>
+</body>
+</html>

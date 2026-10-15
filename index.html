@@ -216,6 +216,67 @@
   }
   .bar-fill{ height: 100%; border-radius: 99px; }
 
+  .score-title{
+    margin-top: 1.1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .score-title + .score-bars{ margin-top: 0.5rem; }
+  .score-row{ grid-template-columns: 100px 1fr 52px; }
+  .score-num{ text-align: right; font-weight: 600; color: var(--ink); }
+  .legend{
+    margin-top: 0.9rem;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .legend strong{ color: var(--ink); }
+  .dose-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.5rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .dose-card h3{ font-size: 1.05rem; margin-bottom: 0.6rem; }
+  .dose-scroll{ overflow-x: auto; }
+  .dose-table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 520px;
+  }
+  .dose-table th{
+    text-align: left;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .dose-table td{
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .dose-table tr:last-child td{ border-bottom: none; }
+  .dose-table tr.primary-row td{ background: #F4F8F6; font-weight: 600; }
+  .pill{
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 99px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: var(--line);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .pill.primary{ background: var(--pine); color: #fff; }
+  .pill.supporting{ background: #D9E8E2; color: var(--pine-dark); }
+  .pill.later{ background: #E6EEF3; color: var(--ice); }
+  .pill.avoid-for-now{ background: var(--warn-bg); color: var(--heat); border: 1px solid var(--warn-line); }
   .why{
     background: var(--panel);
     border: 1px solid var(--line);
@@ -426,21 +487,76 @@ function computeModalityScores(type, severity, onset, goal){
   return scores;
 }
 
-function modalityPlan(topModality, severity){
-  if (topModality === "ice"){
-    const dur = Math.round(Math.min(25, 10 + severity * 1.5));
-    const freq = severity >= 6 ? "every 2–3 hours" : "every 4 hours";
-    return `Ice, ${dur} min, ${freq}, for the next 48 hours.`;
+// --- Turn each fit score (0-10) into a concrete dose: minutes per session x sessions per day ---
+// Session length comes from pain severity; number of sessions per day scales with the fit score.
+const MAX_SESSIONS_PER_DAY = { ice: 6, heat: 3, compression: 4 };
+const MODALITY_LABEL = { ice: "Ice", heat: "Heat", rest: "Rest", compression: "Compression" };
+
+function sessionMinutes(modality, severity){
+  if (modality === "ice") return Math.round(Math.min(20, 10 + severity * 1.5));
+  if (modality === "heat") return Math.round(Math.min(25, 15 + severity));
+  if (modality === "compression") return 20;
+  return 0;
+}
+
+function buildDosePlan(scores, topModality, type, severity, onset){
+  const topScore = scores[topModality];
+  const heatBlocked = (onset === "lt24" || type === "acute");
+
+  return Object.keys(scores).map(key => {
+    const score = scores[key];
+    const isTop = key === topModality;
+    const row = { key, label: MODALITY_LABEL[key], score, priority: "", dose: "", totalMin: null, days: null };
+
+    if (key === "heat" && heatBlocked && !isTop){
+      row.priority = "Avoid for now";
+      row.dose = "Don't apply heat to a fresh or sharp injury";
+      return row;
+    }
+
+    if (key === "heat" && topModality === "ice" && !isTop){
+      row.priority = "Later";
+      row.dose = "Consider once the first 48–72 hours have passed";
+      return row;
+    }
+
+    if (isTop) row.priority = "Primary";
+    else if (score >= 4 && score >= topScore - 2.5) row.priority = "Supporting";
+    else row.priority = "Low priority";
+
+    if (row.priority === "Low priority"){
+      row.dose = "Not needed right now";
+      return row;
+    }
+
+    if (key === "rest"){
+      const days = Math.max(1, Math.min(4, Math.round(score / 10 * 4)));
+      row.days = days;
+      row.dose = `Avoid loading the area for ~${days} day${days > 1 ? "s" : ""}`;
+      return row;
+    }
+
+    const mins = sessionMinutes(key, severity);
+    const sessions = Math.max(1, Math.round(score / 10 * MAX_SESSIONS_PER_DAY[key]));
+    row.mins = mins;
+    row.sessions = sessions;
+    row.totalMin = mins * sessions;
+    row.dose = `${mins} min × ${sessions} session${sessions > 1 ? "s" : ""} per day`;
+    return row;
+  });
+}
+
+function modalityPlan(topRow){
+  if (topRow.key === "rest"){
+    return `Rest and avoid loading the area for about ${topRow.days} day${topRow.days > 1 ? "s" : ""}, then reassess.`;
   }
-  if (topModality === "heat"){
-    const dur = Math.round(Math.min(25, 15 + severity));
-    return `Heat, ${dur} min sessions, 1–2 times per day.`;
+  if (topRow.key === "ice"){
+    return `Ice for ${topRow.mins} min, about ${topRow.sessions} time${topRow.sessions > 1 ? "s" : ""} per day (spread through the day), for the next 48 hours. That's roughly ${topRow.totalMin} minutes of icing per day.`;
   }
-  if (topModality === "compression"){
-    return `Compression wrap during activity, 20 min sessions, reassess daily.`;
+  if (topRow.key === "heat"){
+    return `Heat for ${topRow.mins} min, about ${topRow.sessions} time${topRow.sessions > 1 ? "s" : ""} per day. That's roughly ${topRow.totalMin} minutes of heat per day.`;
   }
-  const restDays = Math.max(1, Math.ceil(severity / 3));
-  return `Rest and avoid loading the area for about ${restDays} day(s), then reassess.`;
+  return `Wear a compression wrap during activity in ~${topRow.mins} min sessions, up to ${topRow.sessions} time${topRow.sessions > 1 ? "s" : ""} per day. Reassess daily.`;
 }
 
 // --- Exercise fetch + suitability scoring ---
@@ -509,7 +625,8 @@ document.getElementById("recovery-form").addEventListener("submit", async (e) =>
 
   const scores = computeModalityScores(type, severity, onset, selectedGoal);
   const topModality = Object.keys(scores).reduce((a,b) => scores[a] >= scores[b] ? a : b);
-  const plan = modalityPlan(topModality, severity);
+  const doseRows = buildDosePlan(scores, topModality, type, severity, onset);
+  const plan = modalityPlan(doseRows.find(r => r.key === topModality));
 
   const typeLabel = { doms: "muscle soreness (DOMS)", joint: "joint/tendon discomfort", acute: "sharp/acute pain" }[type];
   const onsetLabel = { lt24: "under 24 hours ago", "24to72": "24–72 hours ago", gt72: "over 72 hours ago" }[onset];
@@ -561,21 +678,57 @@ document.getElementById("recovery-form").addEventListener("submit", async (e) =>
     <div class="modality-card ${topModality}">
       <h2>${topModality.charAt(0).toUpperCase() + topModality.slice(1)}</h2>
       <div class="detail">${plan}</div>
+      <div class="score-title">Fit score for each option (0–10)</div>
       <div class="score-bars">
         ${Object.entries(scores).map(([k,v]) => `
           <div class="score-row">
-            <div>${k}</div>
+            <div>${MODALITY_LABEL[k]}</div>
             <div class="bar-track"><div class="bar-fill" style="width:${v*10}%; background:${barColor[k]}"></div></div>
-            <div>${v.toFixed(1)}</div>
+            <div class="score-num">${v.toFixed(1)}/10</div>
           </div>
         `).join("")}
+      </div>
+      <div class="legend">
+        <strong>How to read these scores:</strong> each bar shows how well that option matches what you entered
+        (body area, discomfort type, severity, timing, and goal). 10 is the strongest match. They are
+        <em>not</em> minutes, pain levels, or medical measurements. The suggested plan below converts each score
+        into a dose.
+      </div>
+    </div>
+
+    <div class="dose-card">
+      <h3>Suggested daily plan</h3>
+      <div class="dose-scroll">
+        <table class="dose-table">
+          <thead>
+            <tr><th>Option</th><th>Fit</th><th>Priority</th><th>Suggested dose</th><th>≈ Min/day</th></tr>
+          </thead>
+          <tbody>
+            ${doseRows.map(r => `
+              <tr class="${r.priority === "Primary" ? "primary-row" : ""}">
+                <td>${r.label}</td>
+                <td>${r.score.toFixed(1)}</td>
+                <td><span class="pill ${r.priority.toLowerCase().replace(/\s+/g, "-")}">${r.priority}</span></td>
+                <td>${r.dose}</td>
+                <td>${r.totalMin !== null ? r.totalMin : "—"}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div class="legend">
+        <strong>How scores become minutes:</strong> session length is set by your pain severity (ice 10–20 min,
+        heat 15–25 min, compression 20 min). Sessions per day scale with the fit score: score ÷ 10 × the daily
+        maximum for that option (ice 6, heat 3, compression 4). Rest is shown in days. Heat is held back while
+        ice is the primary option, for injuries under 24 hours old, and for sharp or acute pain. These are rule-of-thumb estimates, not
+        clinical prescriptions.
       </div>
     </div>
 
     <div class="why">
       <strong>Why this recommendation?</strong><br>
       You reported ${typeLabel} in your ${muscleName.toLowerCase()}, severity ${severity}/10, starting ${onsetLabel}.
-      That combination scored <strong>${topModality}</strong> highest (${scores[topModality].toFixed(1)}/10) against the other modalities —
+      That combination scored <strong>${topModality}</strong> highest (${scores[topModality].toFixed(1)}/10) against the other modalities, so it gets the largest share of your daily plan —
       ${type === "acute" ? "acute pain weights rest and ice heavily regardless of timing." :
         onset === "lt24" ? "recent onset favors ice over heat." :
         onset === "gt72" ? "since onset was over 72 hours ago, heat is weighted higher than it would be for a fresh injury." :
